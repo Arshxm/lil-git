@@ -9,7 +9,7 @@ type VC struct {
 	wd          *workdir.WorkDir
 	commits     []*Commit
 	status      *Status
-	stagingArea map[string]string // file -> staged content
+	stagingArea map[string]string
 }
 
 type Commit struct {
@@ -32,12 +32,9 @@ func Init(wd *workdir.WorkDir) *VC {
 
 func (vc *VC) Add(files ...string) {
 	for _, file := range files {
-		// Get current content and store it in staging area
 		content, err := vc.wd.CatFile(file)
 		if err == nil {
 			vc.stagingArea[file] = content
-
-			// Add to staged files list if not already there
 			alreadyStaged := false
 			for _, stagedFile := range vc.status.StagedFiles {
 				if stagedFile == file {
@@ -64,7 +61,6 @@ func (vc *VC) Status() *Status {
 	modifiedFiles := []string{}
 	stagedFiles := vc.status.StagedFiles
 
-	// If there are no commits yet, no files can be "modified"
 	if len(vc.commits) == 0 {
 		vc.status.ModifiedFiles = []string{}
 		vc.status.StagedFiles = stagedFiles
@@ -77,23 +73,18 @@ func (vc *VC) Status() *Status {
 			continue
 		}
 
-		// Check if file is staged
 		stagedContent, isStaged := vc.stagingArea[file]
 
 		if isStaged {
-			// File is staged: compare working dir with staged content
 			if workingContent != stagedContent {
 				modifiedFiles = append(modifiedFiles, file)
 			}
 		} else {
-			// File is not staged: compare working dir with last commit
 			lastCommit := vc.commits[len(vc.commits)-1]
 			commitContent, err := lastCommit.files.CatFile(file)
 			if err != nil {
-				// File exists in working dir but not in commit = modified
 				modifiedFiles = append(modifiedFiles, file)
 			} else if workingContent != commitContent {
-				// File content differs from committed version = modified
 				modifiedFiles = append(modifiedFiles, file)
 			}
 		}
@@ -110,8 +101,8 @@ func (vc *VC) Commit(message string) {
 		files:   vc.wd.Clone(),
 	}
 	vc.commits = append(vc.commits, newCommit)
-	vc.status = &Status{}                    // Clear both staged and modified files
-	vc.stagingArea = make(map[string]string) // Clear staging area
+	vc.status = &Status{}
+	vc.stagingArea = make(map[string]string)
 }
 
 func (vc *VC) GetWorkDir() *workdir.WorkDir {
@@ -142,11 +133,9 @@ func (vc *VC) Checkout(commit string) (*workdir.WorkDir, error) {
 		return vc.wd, nil
 	}
 
-	// Parse commit reference
-	index := len(vc.commits) - 1 // Default to latest commit
+	index := len(vc.commits) - 1
 
 	if strings.HasPrefix(commit, "~") {
-		// Handle ~1, ~2, ~3 format
 		steps := len(commit) - 1
 		if commit == "~1" {
 			steps = 1
@@ -157,7 +146,6 @@ func (vc *VC) Checkout(commit string) (*workdir.WorkDir, error) {
 		}
 		index = len(vc.commits) - 1 - steps
 	} else if strings.HasPrefix(commit, "^") {
-		// Handle ^, ^^, ^^^ format	
 		steps := len(commit)
 		index = len(vc.commits) - 1 - steps
 	}

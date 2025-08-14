@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// you can use this library freely: "github.com/otiai10/copy"
 
 type WorkDir struct {
 	root  string
@@ -80,13 +79,9 @@ func (wd *WorkDir) Clone() *WorkDir {
 		files: make(map[string]string),
 		dirs:  make(map[string]bool),
 	}
-
-	// Copy all files
 	for path, content := range wd.files {
 		newWd.files[path] = content
 	}
-
-	// Copy all directories
 	for path, exists := range wd.dirs {
 		newWd.dirs[path] = exists
 	}
